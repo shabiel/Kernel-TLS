@@ -1,4 +1,4 @@
-XUSBSE2 ;FO-OAK/JLI-CONNECT WITH HTTP SERVER AND GET REPLY ;2016-05-23  6:40 AM
+XUSBSE2 ;FO-OAK/JLI-CONNECT WITH HTTP SERVER AND GET REPLY ;2016-05-23  7:23 AM
  ;;8.0;KERNEL;**404,439,523,ven/smh**;Jul 10, 1995;Build 2
  Q
  ;
@@ -142,7 +142,6 @@ EN1(ADDRESS,RESULTS,NOHEADERS) ;
  ;
 TEST D EN^%ut($T(+0),1) QUIT
 T1 ; @TEST GET page no TLS
- K ^TMP("XTMCOVRESULT",$J)
  N R,% S %=$$GET1(.R,"thebes.smh101.com",80,"r/DIC")
  D CHKTF^%ut(%["DIC")
  ; Note: Problem Points from tracing the code
@@ -177,3 +176,64 @@ T4 ; @TEST POST page w/ TLS
  D CHKTF^%ut(%[RAND)
  QUIT
  ;
+TEST D EN^%ut($T(+0),2) quit  ; Unit Tests
+TGET ; @TEST Test Get
+ b
+ N RTN,H,RET S RET=$$GET1(.RTN,"httpbin.org,443,"/stream/20",1)
+ N CNT S CNT=0
+ N I F I=0:0 S I=$O(RTN(I)) Q:'I  S CNT=CNT+1
+ D CHKTF^%ut(CNT=20,"20 lines are supposed to be returned")
+ D CHKTF^%ut(H("STATUS")=200,"Status is supposed to be 200")
+ D CHKTF^%ut(RET=0,"Return code is supposed to be zero")
+ quit
+ ;
+TPUT ; @TEST Test Put
+ N PAYLOAD,RTN,H,RET
+ N R S R=$R(123423421234)
+ S PAYLOAD(1)="KBANTEST ; VEN/SMH - Test routine for Sam ;"_R
+ S PAYLOAD(2)=" QUIT"
+ S RET=$$%(.RTN,"PUT","https://httpbin.org/put",.PAYLOAD,"application/text",5,.H)
+ ;
+ N OK S OK=0
+ N I F I=0:0 S I=$O(RTN(I)) Q:'I  I RTN(I)["data",RTN(I)[R S OK=1
+ D CHKTF^%ut(RET=0,"Return code is supposed to be zero")
+ D CHKTF^%ut(H("STATUS")=200,"Status is supposed to be 200")
+ D CHKTF^%ut(OK,"Couldn't retried the putted string back")
+ QUIT
+ ;
+TESTCRT ; Unit Test with Client Certificate
+ N OPTIONS
+ ;S OPTIONS("cert")="/home/sam/client.pem"
+ ;S OPTIONS("key")="/home/sam/client.key"
+ ;S OPTIONS("password")="xxxxxxxxxxx"
+ S OPTIONS("cert")="/home/sam/client-nopass.pem"
+ S OPTIONS("key")="/home/sam/client-nopass.key"
+ N RTN N % S %=$$%(.RTN,"GET","https://green-sheet.smh101.com/",,,,,.OPTIONS)
+ ZWRITE RTN
+ I @$Q(RTN)'["DOCTYPE" W "FAIL FAIL FAIL",!
+ W "Exit code: ",%,!
+ QUIT
+ ;
+TESTH ; @TEST Unit Test with headers
+ N OPTIONS
+ S OPTIONS("header",1)="DNT: 1"
+ N RTN N % S %=$$%(.RTN,"GET","https://httpbin.org/headers",,,,,.OPTIONS)
+ N OK S OK=0
+ N I F I=0:0 S I=$O(RTN(I)) Q:'I  I $$UP(RTN(I))["DNT" S OK=1
+ D CHKTF^%ut(%=0,"Return code is supposed to be zero")
+ D CHKTF^%ut(OK,"Couldn't get the sent header back")
+ QUIT
+ ;
+TESTF ; @TEST Unit Test with Form
+ N XML,H
+ S XML(1)="<xml>"
+ S XML(2)="<Book>Book 1</Book>"
+ S XML(3)="<Book>Book 2</Book>"
+ S XML(4)="<Book>Book 3</Book>"
+ S XML(5)="</xml>"
+ S OPTIONS("form")="filename=test1234.xml;type=application/xml"
+ N RTN N % S %=$$%(.RTN,"POST","http://httpbin.org/post",.XML,"",,.H,.OPTIONS)
+ N I F I=0:0 S I=$O(RTN(I)) Q:'I  I RTN(I)["multipart/form-data" S OK=1
+ D CHKTF^%ut(%=0,"Return code is supposed to be zero")
+ D CHKTF^%ut(OK,"Couldn't get the form back")
+ QUIT
