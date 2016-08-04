@@ -9,8 +9,8 @@ CALL(IP,SOCK,TO,TLS) ;Open a socket to the IP address <procedure>
  S ZISOS=^%ZOSF("OS"),TO=$G(TO,30),TLS=$G(TLS,0)
  N $ETRAP,$ESTACK S $ETRAP="G OPNERR^%ZISTCP"
  S POP=1
- I IP'?1.3N1P1.3N1P1.3N1P1.3N S IP=$$ADDRESS^XLFNSLK(IP)  ;Lookup the name
- I IP'?1.3N1P1.3N1P1.3N1P1.3N Q  ;Not in the IP format
+ I '(ZISOS["GT.M") D  I IP'?1.3N1P1.3N1P1.3N1P1.3N Q  ;Not in the IP format
+ . I IP'?1.3N1P1.3N1P1.3N1P1.3N S IP=$$ADDRESS^XLFNSLK(IP)  ;Lookup the name
  I (SOCK<1)!(SOCK>65535) Q
  G CVXD:ZISOS["VAX",CONT:ZISOS["OpenM",CGTM:ZISOS["GT.M",CMSM:ZISOS["MSM"
  S POP=1
@@ -58,6 +58,7 @@ OPNERR ;
  ;D ^%ZTER
  I $ESTACK QUIT
  S POP=1
+ I $D(NIO) C NIO
  D ERRCLR
  Q
 UCXOPEN(NIO) ;This call only applies to SERVER jobs tied to UCX/VMS

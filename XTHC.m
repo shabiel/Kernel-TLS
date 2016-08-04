@@ -48,15 +48,15 @@ TPOST ; @TEST Test Post
 TESTH ; @TEST Unit Test with headers
  N RTN
  N HEADER
- S HEADER="DNT: 1"
- N STATUS S STATUS=$$GETURL^XTHC10("https://httpbin.org/headers",1,$NA(RTN),.HEADER)
+ S HEADER("DNT")=1
+ N STATUS S STATUS=$$GETURL^XTHC10("https://httpbin.org/headers",1,$NA(RTN),,,.HEADER)
  N OK S OK=0
- N I F I=0:0 S I=$O(RTN(I)) Q:'I  I RTN(I)["DNT" S OK=1
+ N I F I=0:0 S I=$O(RTN(I)) Q:'I  I $$UP^XLFSTR(RTN(I))["DNT" S OK=1
  D CHKTF^%ut(+STATUS=200,"Status code is supposed to be 200")
  D CHKTF^%ut(OK,"Couldn't get the sent header back")
  QUIT
  ;
-TESTF ; #TEST Unit Test with Form --needs work!!!
+TESTF ; #TEST Unit Test with Form -- Doesn't work with httpbin
  N XML,H
  S XML(1)="<xml>"
  S XML(2)="<Book>Book 1</Book>"
@@ -64,8 +64,7 @@ TESTF ; #TEST Unit Test with Form --needs work!!!
  S XML(4)="<Book>Book 3</Book>"
  S XML(5)="</xml>"
  S OPTIONS("form")="filename=test1234.xml;type=application/xml"
- N RTN N % S %=$$%(.RTN,"POST","http://httpbin.org/post",.XML,"",,.H,.OPTIONS)
- N STATUS S STATUS=$$GETURL^XTHC10("https://httpbin.org/post",1,$NA(RTN),.H,$NA(PAYLOAD))
+ N STATUS S STATUS=$$GETURL^XTHC10("https://httpbin.org/post",1,$NA(RTN),.H,$NA(PAYLOAD),.OPTIONS)
  N I F I=0:0 S I=$O(RTN(I)) Q:'I  I RTN(I)["multipart/form-data" S OK=1
  D CHKTF^%ut(%=0,"Return code is supposed to be zero")
  D CHKTF^%ut(OK,"Couldn't get the form back")
