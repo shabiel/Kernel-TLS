@@ -1,5 +1,5 @@
-%ZISTCP ;ISC-SF/RWF - DEVICE HANDLER TCP/IP CALLS ;2015-08-23  4:33 PM
- ;;8.0;KERNEL;**36,34,59,69,118,225,275,ven/smh**;Jul 10, 1995;Build 2
+%ZISTCP ;ISC-SF/RWF - DEVICE HANDLER TCP/IP CALLS ;2017-05-23  2:17 PM
+ ;;8.0;KERNEL;**36,34,59,69,118,225,275,638,ven/smh**;Jul 10, 1995;Build 2
  Q
  ;
  ; VEN/SMH - 23 Aug 2015 added TLS for GT.M and Cache for Client calls
@@ -9,8 +9,9 @@ CALL(IP,SOCK,TO,TLS) ;Open a socket to the IP address <procedure>
  S ZISOS=^%ZOSF("OS"),TO=$G(TO,30),TLS=$G(TLS,0)
  N $ETRAP,$ESTACK S $ETRAP="G OPNERR^%ZISTCP"
  S POP=1
- I '(ZISOS["GT.M") D  I IP'?1.3N1P1.3N1P1.3N1P1.3N Q  ;Not in the IP format
- . I IP'?1.3N1P1.3N1P1.3N1P1.3N S IP=$$ADDRESS^XLFNSLK(IP)  ;Lookup the name
+ ; Don't convert IP in M for GT.M; GT.M lets the Linux Kernel handle that
+ I '(ZISOS["GT.M") D  I '$$VALIDATE^XLFIPV(IP) Q  ;Not in the IP format
+ . I '$$VALIDATE^XLFIPV(IP) S IP=$$ADDRESS^XLFNSLK(IP)  ;Lookup the name
  I (SOCK<1)!(SOCK>65535) Q
  G CVXD:ZISOS["VAX",CONT:ZISOS["OpenM",CGTM:ZISOS["GT.M",CMSM:ZISOS["MSM"
  S POP=1
@@ -28,8 +29,12 @@ CMSM ;Open MSM Socket
 CONT ;Open OpenM socket
  I $$VERSION^%ZOSV'<5 S %A=$ZUTIL(68,55,1)
  S NIO="|TCP|"_SOCK
- I 'TLS O NIO:(IP:SOCK:"-M"::512:512):TO G:'$T NOOPN ;Make work like DSM
- I TLS D CACHETLS O NIO:(IP:SOCK:"-M"::512:512:/TLS="client"):TO G:'$T NOOPN ;Make work like DSM
+ ;p638 If IP contains ".", use IPv4 IP address (may be IPv4-mapped, so convert)
+ ;     Else use IPv6 address
+ I IP["." D
+ . O NIO:($$FORCEIP4^XLFIPV(IP):SOCK:"-M"::512:512):TO G:'$T NOOPN
+ E  D
+ . O NIO:("["_IP_"]":SOCK:"-M"::512:512):TO G:'$T NOOPN
  U NIO D VAR(NIO)
  Q
 CGTM ;Open GT.M Socket
@@ -166,7 +171,7 @@ EXIT() ;See if time to exit
  I $L(ZRULE) X ZRULE I $G(ZISQUIT) Q 1
  Q 0
  ;
-LAUNCH(IO,RTN) ;Run job for this conncetion.
+LAUNCH(IO,RTN) ;Run job for this connection.
  N NIO,SOCK,EXIT,XQVOL
  D VAR(IO)
  S ^XUTL("XQ",$J,0)=$$DT^XLFDT
